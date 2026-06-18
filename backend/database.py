@@ -9,3 +9,4 @@ db = client["projectdb"]
 
 users_collection = db["user"]
 boards_collection = db["boards"]
+tasks_collection = db["tasks"]
