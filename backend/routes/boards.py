@@ -1,4 +1,6 @@
 from fastapi import APIRouter
+from bson import ObjectId
+
 from models.board import Board
 from database import boards_collection
 
@@ -7,11 +9,9 @@ router = APIRouter()
 @router.post("/boards")
 def create_board(board: Board):
 
-    new_board = {
+    boards_collection.insert_one({
         "name": board.name
-    }
-
-    boards_collection.insert_one(new_board)
+    })
 
     return {
         "message": "Board Created"
@@ -31,6 +31,8 @@ def get_boards():
         })
 
     return boards
+
+
 @router.get("/boards/count")
 def board_count():
 
@@ -38,4 +40,18 @@ def board_count():
 
     return {
         "total_boards": count
+    }
+
+
+@router.delete("/boards/{board_id}")
+def delete_board(board_id: str):
+
+    boards_collection.delete_one(
+        {
+            "_id": ObjectId(board_id)
+        }
+    )
+
+    return {
+        "message": "Board Deleted"
     }

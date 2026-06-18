@@ -36,6 +36,7 @@ function DraggableTask({ task, deleteTask }) {
       {...listeners}
       {...attributes}
     >
+
       <div
         style={{
           display: "flex",
@@ -43,7 +44,7 @@ function DraggableTask({ task, deleteTask }) {
           alignItems: "center"
         }}
       >
-        <span>{task.title}</span>
+        <strong>{task.title}</strong>
 
         <button
           onClick={() => deleteTask(task.id)}
@@ -62,11 +63,22 @@ function DraggableTask({ task, deleteTask }) {
         style={{
           marginTop: "8px",
           fontSize: "13px",
+          color: "#475569"
+        }}
+      >
+        {task.description}
+      </div>
+
+      <div
+        style={{
+          marginTop: "8px",
+          fontSize: "13px",
           color: "#64748b"
         }}
       >
         📅 {task.due_date}
       </div>
+
     </div>
   );
 }
@@ -110,6 +122,7 @@ function Board() {
   const [showModal, setShowModal] = useState(false);
 
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [status, setStatus] = useState("To Do");
   const [dueDate, setDueDate] = useState("");
 
@@ -134,11 +147,6 @@ function Board() {
 
   const createTask = async () => {
 
-    if (title.trim() === "") {
-      alert("Enter task title");
-      return;
-    }
-
     try {
 
       await axios.post(
@@ -146,6 +154,7 @@ function Board() {
         {
           board_id: id,
           title,
+          description,
           status,
           due_date: dueDate
         }
@@ -154,6 +163,7 @@ function Board() {
       setShowModal(false);
 
       setTitle("");
+      setDescription("");
       setStatus("To Do");
       setDueDate("");
 
@@ -304,6 +314,21 @@ function Board() {
               }
             />
 
+            <textarea
+              placeholder="Task Description"
+              value={description}
+              onChange={(e) =>
+                setDescription(e.target.value)
+              }
+              style={{
+                width: "100%",
+                height: "100px",
+                padding: "12px",
+                marginTop: "10px",
+                marginBottom: "10px"
+              }}
+            />
+
             <input
               type="date"
               value={dueDate}
@@ -313,7 +338,6 @@ function Board() {
               style={{
                 width: "100%",
                 padding: "12px",
-                marginTop: "10px",
                 marginBottom: "10px"
               }}
             />

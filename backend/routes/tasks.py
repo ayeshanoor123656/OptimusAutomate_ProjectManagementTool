@@ -6,12 +6,14 @@ from database import tasks_collection
 
 router = APIRouter()
 
+
 @router.post("/tasks")
 def create_task(task: Task):
 
     tasks_collection.insert_one({
         "board_id": task.board_id,
         "title": task.title,
+        "description": task.description,
         "status": task.status,
         "due_date": task.due_date
     })
@@ -33,6 +35,7 @@ def get_tasks(board_id: str):
         tasks.append({
             "id": str(task["_id"]),
             "title": task["title"],
+            "description": task.get("description", ""),
             "status": task["status"],
             "due_date": task.get("due_date", "")
         })
@@ -73,29 +76,4 @@ def update_task_status(
 
     return {
         "message": "Task Updated"
-    }
-@router.get("/stats")
-def get_stats():
-
-    total_tasks = tasks_collection.count_documents({})
-
-    completed_tasks = tasks_collection.count_documents(
-        {
-            "status": "Done"
-        }
-    )
-
-    pending_tasks = tasks_collection.count_documents(
-        {
-            "$or": [
-                {"status": "To Do"},
-                {"status": "In Progress"}
-            ]
-        }
-    )
-
-    return {
-        "total_tasks": total_tasks,
-        "completed_tasks": completed_tasks,
-        "pending_tasks": pending_tasks
     }
