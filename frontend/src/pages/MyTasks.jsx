@@ -27,7 +27,7 @@ function MyTasks() {
   const fetchTasks = async () => {
     try {
       const response = await axios.get(
-        `http://127.0.0.1:8000/mytasks/${userName}`
+        `https://optimusautomate-projectmanagementtool.onrender.com/mytasks/${userName}`
       );
       setTasks(response.data);
     } catch (error) {

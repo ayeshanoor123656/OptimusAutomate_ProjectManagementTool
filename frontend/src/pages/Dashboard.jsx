@@ -39,7 +39,7 @@ function Dashboard() {
 
   const fetchBoards = async () => {
     try {
-      const res = await axios.get("http://127.0.0.1:8000/boards");
+      const res = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards");
       setBoards(res.data);
     } catch (e) { console.log(e); }
   };
@@ -47,8 +47,8 @@ function Dashboard() {
   const fetchStats = async () => {
     try {
       // Try the dedicated stats endpoints first
-      const boardRes = await axios.get("http://127.0.0.1:8000/boards/count");
-      const statsRes = await axios.get("http://127.0.0.1:8000/stats");
+      const boardRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards/count");
+      const statsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/stats");
       console.log("boards/count response:", boardRes.data);
       console.log("stats response:", statsRes.data);
       setStats({
@@ -61,12 +61,12 @@ function Dashboard() {
       console.warn("Stats endpoints failed, computing from tasks:", e.message);
       // Fallback: compute stats by fetching all boards then all their tasks
       try {
-        const boardsRes = await axios.get("http://127.0.0.1:8000/boards");
+        const boardsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards");
         const allBoards = boardsRes.data;
         let allTasks = [];
         for (const board of allBoards) {
           try {
-            const tasksRes = await axios.get(`http://127.0.0.1:8000/tasks/${board.id}`);
+            const tasksRes = await axios.get(`https://optimusautomate-projectmanagementtool.onrender.com/tasks/${board.id}`);
             allTasks = allTasks.concat(tasksRes.data);
           } catch (_) {}
         }
@@ -85,7 +85,7 @@ function Dashboard() {
   const createBoard = async () => {
     if (boardName.trim() === "") { alert("Please enter a board name"); return; }
     try {
-      await axios.post("http://127.0.0.1:8000/boards", { name: boardName });
+      await axios.post("https://optimusautomate-projectmanagementtool.onrender.com/boards", { name: boardName });
       setBoardName("");
       setShowModal(false);
       fetchBoards();

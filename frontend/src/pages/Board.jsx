@@ -190,14 +190,14 @@ function Board() {
 
   const fetchTasks = async () => {
     try {
-      const response = await axios.get(`http://127.0.0.1:8000/tasks/${id}`);
+      const response = await axios.get(`https://optimusautomate-projectmanagementtool.onrender.com/tasks/${id}`);
       setTasks(response.data);
     } catch (error) { console.log(error); }
   };
 
   const fetchUsers = async () => {
     try {
-      const response = await axios.get("http://127.0.0.1:8000/users");
+      const response = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/users");
       setUsers(response.data);
     } catch (error) { console.log(error); }
   };
@@ -206,7 +206,7 @@ function Board() {
     if (!title.trim()) return;
     setCreating(true);
     try {
-      await axios.post("http://127.0.0.1:8000/tasks", {
+      await axios.post("https://optimusautomate-projectmanagementtool.onrender.com/tasks", {
         board_id: id, title, description,
         assigned_to: assignedTo, status, due_date: dueDate,
       });
@@ -220,7 +220,7 @@ function Board() {
 
   const deleteTask = async (taskId) => {
     try {
-      await axios.delete(`http://127.0.0.1:8000/tasks/${taskId}`);
+      await axios.delete(`https://optimusautomate-projectmanagementtool.onrender.com/tasks/${taskId}`);
       fetchTasks();
     } catch (error) { console.log(error); }
   };
@@ -228,14 +228,14 @@ function Board() {
   const addComment = async (taskId, comment) => {
     if (!comment.trim()) return;
     try {
-      await axios.put(`http://127.0.0.1:8000/tasks/comment/${taskId}`, { comment });
+      await axios.put(`https://optimusautomate-projectmanagementtool.onrender.com/tasks/comment/${taskId}`, { comment });
       fetchTasks();
     } catch (error) { console.log(error); }
   };
 
   const updateTaskStatus = async (taskId, newStatus) => {
     try {
-      await axios.put(`http://127.0.0.1:8000/tasks/${taskId}`, { status: newStatus });
+      await axios.put(`https://optimusautomate-projectmanagementtool.onrender.com/tasks/${taskId}`, { status: newStatus });
       fetchTasks();
     } catch (error) { console.log(error); }
   };
