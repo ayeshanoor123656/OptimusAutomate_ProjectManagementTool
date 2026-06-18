@@ -1,389 +1,363 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { DndContext, useDraggable, useDroppable } from "@dnd-kit/core";
 
-import {
-  DndContext,
-  useDraggable,
-  useDroppable
-} from "@dnd-kit/core";
+/* ─── Drag Handle Icon ─────────────────────────────────────── */
+function GripIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+      <circle cx="3" cy="3" r="1.2" />
+      <circle cx="9" cy="3" r="1.2" />
+      <circle cx="3" cy="6" r="1.2" />
+      <circle cx="9" cy="6" r="1.2" />
+      <circle cx="3" cy="9" r="1.2" />
+      <circle cx="9" cy="9" r="1.2" />
+    </svg>
+  );
+}
 
-function DraggableTask({ task, deleteTask }) {
+/* ─── Draggable Task Card ───────────────────────────────────── */
+function DraggableTask({ task, deleteTask, addComment }) {
+  const [comment, setComment] = useState("");
 
-  const { attributes, listeners, setNodeRef, transform } =
-    useDraggable({
-      id: task.id,
-      data: {
-        task
-      }
-    });
+  const { attributes, listeners, setNodeRef, transform, isDragging } =
+    useDraggable({ id: task.id, data: { task } });
 
   const style = {
-    background: "#f1f5f9",
-    padding: "10px",
-    marginTop: "10px",
-    borderRadius: "8px",
-    cursor: "grab",
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined
+      : undefined,
+    zIndex: isDragging ? 999 : undefined,
+    position: isDragging ? "relative" : undefined,
   };
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      {...listeners}
-      {...attributes}
+      className={`task-card${isDragging ? " dragging" : ""}`}
     >
+      {/* Drag handle */}
+      <div className="drag-handle" {...listeners} {...attributes}>
+        <GripIcon />
+        <span>Drag</span>
+      </div>
 
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center"
-        }}
-      >
-        <strong>{task.title}</strong>
-
-        <button
-          onClick={() => deleteTask(task.id)}
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            color: "red"
-          }}
-        >
-          ❌
+      {/* Header */}
+      <div className="task-header">
+        <span className="task-title">{task.title}</span>
+        <button className="task-delete" onClick={() => deleteTask(task.id)} title="Delete task">
+          ✕
         </button>
       </div>
 
-      <div
-        style={{
-          marginTop: "8px",
-          fontSize: "13px",
-          color: "#475569"
-        }}
-      >
-        {task.description}
+      {/* Description */}
+      {task.description && (
+        <p className="task-desc">{task.description}</p>
+      )}
+
+      {/* Meta badges */}
+      <div className="task-meta">
+        {task.assigned_to && (
+          <span className="task-badge user">👤 {task.assigned_to}</span>
+        )}
+        {task.due_date && (
+          <span className="task-badge date">📅 {task.due_date}</span>
+        )}
       </div>
 
-      <div
-        style={{
-          marginTop: "8px",
-          fontSize: "13px",
-          color: "#64748b"
-        }}
-      >
-        📅 {task.due_date}
-      </div>
+      {/* Comments */}
+      <div className="task-comments">
+        <div className="comments-label">Comments</div>
 
+        {task.comments && task.comments.length > 0 ? (
+          task.comments.map((item, index) => (
+            <div key={index} className="comment-item">
+              {item}
+            </div>
+          ))
+        ) : (
+          <div className="no-comments">No comments yet</div>
+        )}
+
+        <div className="comment-input-row">
+          <input
+            type="text"
+            className="comment-input"
+            placeholder="Add a comment…"
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && comment.trim()) {
+                addComment(task.id, comment);
+                setComment("");
+              }
+            }}
+          />
+          <button
+            className="comment-submit"
+            onClick={() => {
+              addComment(task.id, comment);
+              setComment("");
+            }}
+          >
+            Post
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
 
-function Column({ id, title, tasks, deleteTask }) {
+/* ─── Column ────────────────────────────────────────────────── */
+const COLUMN_META = {
+  "To Do":       { dot: "todo",   label: "To Do" },
+  "In Progress": { dot: "inprog", label: "In Progress" },
+  "Done":        { dot: "done",   label: "Done" },
+};
 
-  const { setNodeRef } = useDroppable({
-    id
-  });
+function Column({ id, tasks, deleteTask, addComment }) {
+  const { setNodeRef, isOver } = useDroppable({ id });
+  const meta = COLUMN_META[id];
 
   return (
     <div
-      ref={setNodeRef}
+      className="kanban-column"
       style={{
-        flex: 1,
-        background: "white",
-        padding: "15px",
-        borderRadius: "12px",
-        minHeight: "500px"
+        outline: isOver ? "2px solid var(--indigo)" : undefined,
+        outlineOffset: "2px",
+        transition: "outline 120ms",
       }}
     >
-      <h2>{title}</h2>
+      <div className="column-header">
+        <div className="column-header-left">
+          <div className={`column-dot ${meta.dot}`} />
+          <span className="column-title">{meta.label}</span>
+        </div>
+        <span className="column-count">{tasks.length}</span>
+      </div>
 
-      {tasks.map((task) => (
-        <DraggableTask
-          key={task.id}
-          task={task}
-          deleteTask={deleteTask}
-        />
-      ))}
+      <div className="column-body" ref={setNodeRef}>
+        {tasks.length === 0 ? (
+          <div
+            style={{
+              textAlign: "center",
+              padding: "24px 12px",
+              color: "var(--slate-400)",
+              fontSize: 12,
+              border: "1.5px dashed var(--slate-200)",
+              borderRadius: "var(--radius-md)",
+            }}
+          >
+            Drop tasks here
+          </div>
+        ) : (
+          tasks.map((task) => (
+            <DraggableTask
+              key={task.id}
+              task={task}
+              deleteTask={deleteTask}
+              addComment={addComment}
+            />
+          ))
+        )}
+      </div>
     </div>
   );
 }
 
+/* ─── Board Page ────────────────────────────────────────────── */
 function Board() {
-
   const { id } = useParams();
+  const navigate = useNavigate();
 
   const [tasks, setTasks] = useState([]);
-
+  const [users, setUsers] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [creating, setCreating] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [assignedTo, setAssignedTo] = useState("");
   const [status, setStatus] = useState("To Do");
   const [dueDate, setDueDate] = useState("");
 
   useEffect(() => {
     fetchTasks();
+    fetchUsers();
   }, []);
 
   const fetchTasks = async () => {
-
     try {
-
-      const response = await axios.get(
-        `http://127.0.0.1:8000/tasks/${id}`
-      );
-
+      const response = await axios.get(`http://127.0.0.1:8000/tasks/${id}`);
       setTasks(response.data);
+    } catch (error) { console.log(error); }
+  };
 
-    } catch (error) {
-      console.log(error);
-    }
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get("http://127.0.0.1:8000/users");
+      setUsers(response.data);
+    } catch (error) { console.log(error); }
   };
 
   const createTask = async () => {
-
+    if (!title.trim()) return;
+    setCreating(true);
     try {
-
-      await axios.post(
-        "http://127.0.0.1:8000/tasks",
-        {
-          board_id: id,
-          title,
-          description,
-          status,
-          due_date: dueDate
-        }
-      );
-
+      await axios.post("http://127.0.0.1:8000/tasks", {
+        board_id: id, title, description,
+        assigned_to: assignedTo, status, due_date: dueDate,
+      });
       setShowModal(false);
-
-      setTitle("");
-      setDescription("");
-      setStatus("To Do");
-      setDueDate("");
-
+      setTitle(""); setDescription(""); setAssignedTo("");
+      setStatus("To Do"); setDueDate("");
       fetchTasks();
-
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) { console.log(error); }
+    finally { setCreating(false); }
   };
 
   const deleteTask = async (taskId) => {
-
     try {
-
-      await axios.delete(
-        `http://127.0.0.1:8000/tasks/${taskId}`
-      );
-
+      await axios.delete(`http://127.0.0.1:8000/tasks/${taskId}`);
       fetchTasks();
-
-    } catch (error) {
-      console.log(error);
-    }
+    } catch (error) { console.log(error); }
   };
 
-  const updateTaskStatus = async (
-    taskId,
-    newStatus
-  ) => {
-
+  const addComment = async (taskId, comment) => {
+    if (!comment.trim()) return;
     try {
-
-      await axios.put(
-        `http://127.0.0.1:8000/tasks/${taskId}`,
-        {
-          status: newStatus
-        }
-      );
-
+      await axios.put(`http://127.0.0.1:8000/tasks/comment/${taskId}`, { comment });
       fetchTasks();
+    } catch (error) { console.log(error); }
+  };
 
-    } catch (error) {
-      console.log(error);
-    }
+  const updateTaskStatus = async (taskId, newStatus) => {
+    try {
+      await axios.put(`http://127.0.0.1:8000/tasks/${taskId}`, { status: newStatus });
+      fetchTasks();
+    } catch (error) { console.log(error); }
   };
 
   const handleDragEnd = (event) => {
-
     const { active, over } = event;
-
     if (!over) return;
-
-    updateTaskStatus(
-      active.id,
-      over.id
-    );
+    updateTaskStatus(active.id, over.id);
   };
 
-  const todoTasks = tasks.filter(
-    (task) => task.status === "To Do"
-  );
-
-  const progressTasks = tasks.filter(
-    (task) => task.status === "In Progress"
-  );
-
-  const doneTasks = tasks.filter(
-    (task) => task.status === "Done"
-  );
+  const getByStatus = (s) => tasks.filter((t) => t.status === s);
 
   return (
-    <div
-      style={{
-        background: "#f4f7fc",
-        minHeight: "100vh",
-        padding: "30px"
-      }}
-    >
-
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          marginBottom: "30px"
-        }}
-      >
-        <h1>Board</h1>
-
-        <button
-          className="auth-btn"
-          style={{ width: "200px" }}
-          onClick={() => setShowModal(true)}
-        >
-          Create Task
+    <div className="board-page">
+      {/* Topbar */}
+      <div className="board-topbar">
+        <div className="board-topbar-left">
+          <button className="back-btn" onClick={() => navigate("/dashboard")}>
+            ←
+          </button>
+          <h1 className="board-title">Board</h1>
+        </div>
+        <button className="btn-primary" onClick={() => setShowModal(true)}>
+          + Add Task
         </button>
       </div>
 
-      <DndContext
-        onDragEnd={handleDragEnd}
-      >
-
-        <div
-          style={{
-            display: "flex",
-            gap: "20px"
-          }}
-        >
-
-          <Column
-            id="To Do"
-            title="To Do"
-            tasks={todoTasks}
-            deleteTask={deleteTask}
-          />
-
-          <Column
-            id="In Progress"
-            title="In Progress"
-            tasks={progressTasks}
-            deleteTask={deleteTask}
-          />
-
-          <Column
-            id="Done"
-            title="Done"
-            tasks={doneTasks}
-            deleteTask={deleteTask}
-          />
-
+      {/* Kanban Area */}
+      <DndContext onDragEnd={handleDragEnd}>
+        <div className="board-columns-area">
+          {["To Do", "In Progress", "Done"].map((col) => (
+            <Column
+              key={col}
+              id={col}
+              tasks={getByStatus(col)}
+              deleteTask={deleteTask}
+              addComment={addComment}
+            />
+          ))}
         </div>
-
       </DndContext>
 
+      {/* Create Task Modal */}
       {showModal && (
-
-        <div className="modal-overlay">
-
-          <div className="modal">
-
-            <h2>Create Task</h2>
-
-            <input
-              type="text"
-              placeholder="Task Title"
-              value={title}
-              onChange={(e) =>
-                setTitle(e.target.value)
-              }
-            />
-
-            <textarea
-              placeholder="Task Description"
-              value={description}
-              onChange={(e) =>
-                setDescription(e.target.value)
-              }
-              style={{
-                width: "100%",
-                height: "100px",
-                padding: "12px",
-                marginTop: "10px",
-                marginBottom: "10px"
-              }}
-            />
-
-            <input
-              type="date"
-              value={dueDate}
-              onChange={(e) =>
-                setDueDate(e.target.value)
-              }
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginBottom: "10px"
-              }}
-            />
-
-            <select
-              value={status}
-              onChange={(e) =>
-                setStatus(e.target.value)
-              }
-              style={{
-                width: "100%",
-                padding: "12px",
-                marginBottom: "20px"
-              }}
-            >
-              <option>To Do</option>
-              <option>In Progress</option>
-              <option>Done</option>
-            </select>
-
-            <div className="modal-buttons">
-
-              <button
-                className="auth-btn"
-                onClick={createTask}
-              >
-                Create
-              </button>
-
-              <button
-                className="cancel-btn"
-                onClick={() =>
-                  setShowModal(false)
-                }
-              >
-                Cancel
-              </button>
-
+        <div
+          className="modal-overlay"
+          onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
+        >
+          <div className="modal" style={{ maxWidth: 500 }}>
+            <div className="modal-header">
+              <span className="modal-title">Add Task</span>
+              <button className="modal-close" onClick={() => setShowModal(false)}>✕</button>
             </div>
 
+            <div className="modal-field">
+              <label>Task title</label>
+              <input
+                type="text"
+                placeholder="What needs to be done?"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="modal-field">
+              <label>Description</label>
+              <textarea
+                placeholder="Add more details (optional)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+              />
+            </div>
+
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+              <div className="modal-field">
+                <label>Assign to</label>
+                <select
+                  value={assignedTo}
+                  onChange={(e) => setAssignedTo(e.target.value)}
+                >
+                  <option value="">Unassigned</option>
+                  {users.map((user) => (
+                    <option key={user.email} value={user.name}>{user.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="modal-field">
+                <label>Status</label>
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  <option>To Do</option>
+                  <option>In Progress</option>
+                  <option>Done</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="modal-field">
+              <label>Due date</label>
+              <input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            <div className="modal-actions">
+              <button className="btn-secondary" onClick={() => setShowModal(false)}>
+                Cancel
+              </button>
+              <button
+                className="btn-primary"
+                onClick={createTask}
+                disabled={creating}
+              >
+                {creating ? "Adding…" : "Add Task"}
+              </button>
+            </div>
           </div>
-
         </div>
-
       )}
-
     </div>
   );
 }

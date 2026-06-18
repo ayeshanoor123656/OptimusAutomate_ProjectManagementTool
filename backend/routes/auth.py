@@ -5,6 +5,7 @@ from utils.auth import hash_password, verify_password
 
 router = APIRouter()
 
+
 @router.post("/register")
 def register(user: UserRegister):
 
@@ -13,9 +14,13 @@ def register(user: UserRegister):
     )
 
     if existing_user:
-        return {"message": "Email already exists"}
+        return {
+            "message": "Email already exists"
+        }
 
-    hashed = hash_password(user.password)
+    hashed = hash_password(
+        user.password
+    )
 
     users_collection.insert_one({
         "name": user.name,
@@ -23,7 +28,9 @@ def register(user: UserRegister):
         "password": hashed
     })
 
-    return {"message": "User Registered Successfully"}
+    return {
+        "message": "User Registered Successfully"
+    }
 
 
 @router.post("/login")
@@ -34,15 +41,34 @@ def login(user: UserLogin):
     )
 
     if not existing_user:
-        return {"message": "User not found"}
+        return {
+            "message": "User not found"
+        }
 
     if not verify_password(
         user.password,
         existing_user["password"]
     ):
-        return {"message": "Invalid Password"}
+        return {
+            "message": "Invalid Password"
+        }
 
     return {
         "message": "Login Successful",
         "name": existing_user["name"]
     }
+
+
+@router.get("/users")
+def get_users():
+
+    users = []
+
+    for user in users_collection.find():
+
+        users.append({
+            "name": user["name"],
+            "email": user["email"]
+        })
+
+    return users
