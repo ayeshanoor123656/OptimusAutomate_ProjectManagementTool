@@ -74,3 +74,28 @@ def update_task_status(
     return {
         "message": "Task Updated"
     }
+@router.get("/stats")
+def get_stats():
+
+    total_tasks = tasks_collection.count_documents({})
+
+    completed_tasks = tasks_collection.count_documents(
+        {
+            "status": "Done"
+        }
+    )
+
+    pending_tasks = tasks_collection.count_documents(
+        {
+            "$or": [
+                {"status": "To Do"},
+                {"status": "In Progress"}
+            ]
+        }
+    )
+
+    return {
+        "total_tasks": total_tasks,
+        "completed_tasks": completed_tasks,
+        "pending_tasks": pending_tasks
+    }

@@ -31,3 +31,11 @@ def get_boards():
         })
 
     return boards
+@router.get("/boards/count")
+def board_count():
+
+    count = boards_collection.count_documents({})
+
+    return {
+        "total_boards": count
+    }

@@ -7,14 +7,24 @@ function Dashboard() {
   const navigate = useNavigate();
 
   const [boards, setBoards] = useState([]);
+
   const [showModal, setShowModal] = useState(false);
   const [boardName, setBoardName] = useState("");
 
+  const [stats, setStats] = useState({
+    totalBoards: 0,
+    totalTasks: 0,
+    completedTasks: 0,
+    pendingTasks: 0
+  });
+
   useEffect(() => {
     fetchBoards();
+    fetchStats();
   }, []);
 
   const fetchBoards = async () => {
+
     try {
 
       const response = await axios.get(
@@ -22,6 +32,30 @@ function Dashboard() {
       );
 
       setBoards(response.data);
+
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  const fetchStats = async () => {
+
+    try {
+
+      const boardResponse = await axios.get(
+        "http://127.0.0.1:8000/boards/count"
+      );
+
+      const statsResponse = await axios.get(
+        "http://127.0.0.1:8000/stats"
+      );
+
+      setStats({
+        totalBoards: boardResponse.data.total_boards,
+        totalTasks: statsResponse.data.total_tasks,
+        completedTasks: statsResponse.data.completed_tasks,
+        pendingTasks: statsResponse.data.pending_tasks
+      });
 
     } catch (error) {
       console.log(error);
@@ -48,6 +82,7 @@ function Dashboard() {
       setShowModal(false);
 
       fetchBoards();
+      fetchStats();
 
     } catch (error) {
       console.log(error);
@@ -75,7 +110,7 @@ function Dashboard() {
 
         <div className="topbar">
 
-          <h1>Project Boards</h1>
+          <h1>Dashboard</h1>
 
           <button
             className="auth-btn"
@@ -85,6 +120,48 @@ function Dashboard() {
           </button>
 
         </div>
+
+        {/* Statistics */}
+
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns:
+              "repeat(auto-fit,minmax(220px,1fr))",
+            gap: "20px",
+            marginBottom: "30px"
+          }}
+        >
+
+          <div className="board-card">
+            <h3>Total Boards</h3>
+            <h1>{stats.totalBoards}</h1>
+          </div>
+
+          <div className="board-card">
+            <h3>Total Tasks</h3>
+            <h1>{stats.totalTasks}</h1>
+          </div>
+
+          <div className="board-card">
+            <h3>Completed Tasks</h3>
+            <h1>{stats.completedTasks}</h1>
+          </div>
+
+          <div className="board-card">
+            <h3>Pending Tasks</h3>
+            <h1>{stats.pendingTasks}</h1>
+          </div>
+
+        </div>
+
+        <h2
+          style={{
+            marginBottom: "20px"
+          }}
+        >
+          Project Boards
+        </h2>
 
         <div className="board-grid">
 
@@ -96,9 +173,12 @@ function Dashboard() {
               onClick={() =>
                 navigate(`/board/${board.id}`)
               }
+              style={{
+                cursor: "pointer"
+              }}
             >
               <h3>{board.name}</h3>
-              <p>Project Board</p>
+              <p>Click to Open Board</p>
             </div>
 
           ))}
