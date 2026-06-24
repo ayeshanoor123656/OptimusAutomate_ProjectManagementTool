@@ -31,6 +31,10 @@ function Dashboard() {
   const [boards, setBoards]       = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [boardName, setBoardName] = useState("");
+  // Step 1: new states
+  const [showJoinModal, setShowJoinModal] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
+  const [generatedInviteCode, setGeneratedInviteCode] = useState("");
   const [stats, setStats] = useState({
     totalBoards: 0, totalTasks: 0, completedTasks: 0, pendingTasks: 0,
   });
@@ -46,7 +50,6 @@ function Dashboard() {
 
   const fetchStats = async () => {
     try {
-      // Try the dedicated stats endpoints first
       const boardRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards/count");
       const statsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/stats");
       console.log("boards/count response:", boardRes.data);
@@ -59,7 +62,6 @@ function Dashboard() {
       });
     } catch (e) {
       console.warn("Stats endpoints failed, computing from tasks:", e.message);
-      // Fallback: compute stats by fetching all boards then all their tasks
       try {
         const boardsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards");
         const allBoards = boardsRes.data;
@@ -82,15 +84,48 @@ function Dashboard() {
     }
   };
 
+  // Step 2: updated createBoard
   const createBoard = async () => {
-    if (boardName.trim() === "") { alert("Please enter a board name"); return; }
+    if (boardName.trim() === "") {
+      alert("Please enter a board name");
+      return;
+    }
     try {
-      await axios.post("https://optimusautomate-projectmanagementtool.onrender.com/boards", { name: boardName });
+      const response = await axios.post(
+        "https://optimusautomate-projectmanagementtool.onrender.com/boards",
+        { name: boardName }
+      );
+     
+console.log("FULL RESPONSE:", response);
+console.log("DATA:", response.data);
+
+alert(JSON.stringify(response.data));
+      setGeneratedInviteCode(response.data.invite_code);
+      alert("Board Created!\nInvite Code: " + response.data.invite_code);
       setBoardName("");
       setShowModal(false);
       fetchBoards();
       fetchStats();
-    } catch (e) { console.log(e); }
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  // Step 3: joinBoard function
+  const joinBoard = async () => {
+    const username = localStorage.getItem("userName");
+    try {
+      const response = await axios.post(
+        "https://optimusautomate-projectmanagementtool.onrender.com/boards/join",
+        { invite_code: inviteCode, username }
+      );
+      alert(response.data.message);
+      setInviteCode("");
+      setShowJoinModal(false);
+      fetchBoards();
+    } catch (error) {
+      console.log(error);
+    }
   };
 
   const logout = () => {
@@ -223,23 +258,40 @@ function Dashboard() {
             </h1>
             <p style={{ fontSize: 13, color: T.navy600, marginTop: 2 }}>Welcome back, {userName}!</p>
           </div>
-          <button
-            onClick={() => setShowModal(true)}
-            style={{
-              display: "inline-flex", alignItems: "center", gap: 7,
-              padding: "10px 18px",
-              background: "linear-gradient(135deg,#6366F1,#4F46E5)",
-              color: T.white, border: "none", borderRadius: 10,
-              fontFamily: "'Inter',system-ui,sans-serif",
-              fontSize: 13.5, fontWeight: 600, cursor: "pointer",
-              boxShadow: "0 3px 10px rgba(99,102,241,0.35)",
-              transition: "all 150ms",
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(99,102,241,0.45)"; }}
-            onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 3px 10px rgba(99,102,241,0.35)"; }}
-          >
-            + New Board
-          </button>
+
+          {/* Step 4: replaced single button with Join Board + New Board */}
+          <div style={{ display: "flex", gap: "10px" }}>
+            <button
+              onClick={() => setShowJoinModal(true)}
+              style={{
+                padding: "10px 18px",
+                borderRadius: "10px",
+                border: "none",
+                background: "#10B981",
+                color: "white",
+                cursor: "pointer",
+              }}
+            >
+              Join Board
+            </button>
+            <button
+              onClick={() => setShowModal(true)}
+              style={{
+                display: "inline-flex", alignItems: "center", gap: 7,
+                padding: "10px 18px",
+                background: "linear-gradient(135deg,#6366F1,#4F46E5)",
+                color: T.white, border: "none", borderRadius: 10,
+                fontFamily: "'Inter',system-ui,sans-serif",
+                fontSize: 13.5, fontWeight: 600, cursor: "pointer",
+                boxShadow: "0 3px 10px rgba(99,102,241,0.35)",
+                transition: "all 150ms",
+              }}
+              onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 6px 16px rgba(99,102,241,0.45)"; }}
+              onMouseLeave={e => { e.currentTarget.style.transform = "translateY(0)"; e.currentTarget.style.boxShadow = "0 3px 10px rgba(99,102,241,0.35)"; }}
+            >
+              + New Board
+            </button>
+          </div>
         </div>
 
         {/* Page body */}
@@ -353,7 +405,82 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* ════════ MODAL ════════ */}
+      {/* ════════ Step 5: JOIN BOARD MODAL ════════ */}
+      {showJoinModal && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "rgba(0,0,0,0.4)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 200,
+          }}
+        >
+          <div
+            style={{
+              background: "white",
+              padding: "28px",
+              borderRadius: "10px",
+              width: "400px",
+              boxShadow: "0 20px 60px rgba(15,23,42,0.2)",
+            }}
+          >
+            <h2 style={{ margin: "0 0 16px", fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", fontSize: 18, fontWeight: 700, color: T.navy }}>
+              Join Board
+            </h2>
+            <input
+              type="text"
+              placeholder="Invite Code"
+              value={inviteCode}
+              onChange={(e) => setInviteCode(e.target.value)}
+              style={{
+                width: "100%",
+                padding: "10px 13px",
+                border: `1.5px solid ${T.slate200}`,
+                borderRadius: 10,
+                fontFamily: "'Inter',system-ui,sans-serif",
+                fontSize: 14,
+                color: T.navy,
+                boxSizing: "border-box",
+              }}
+            />
+            <div style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "flex-end" }}>
+              <button
+                onClick={() => setShowJoinModal(false)}
+                style={{
+                  padding: "10px 18px",
+                  background: T.white,
+                  border: `1.5px solid ${T.slate200}`,
+                  borderRadius: 10,
+                  fontFamily: "'Inter',system-ui,sans-serif",
+                  fontSize: 13.5, fontWeight: 600,
+                  color: T.navy700, cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={joinBoard}
+                style={{
+                  padding: "10px 20px",
+                  background: "#10B981",
+                  border: "none",
+                  borderRadius: 10,
+                  fontFamily: "'Inter',system-ui,sans-serif",
+                  fontSize: 13.5, fontWeight: 600,
+                  color: "white", cursor: "pointer",
+                }}
+              >
+                Join
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════ CREATE BOARD MODAL ════════ */}
       {showModal && (
         <div
           onClick={(e) => e.target === e.currentTarget && setShowModal(false)}
