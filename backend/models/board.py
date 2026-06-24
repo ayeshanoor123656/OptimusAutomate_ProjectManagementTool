@@ -1,7 +1,9 @@
 from pydantic import BaseModel
 
+
 class Board(BaseModel):
     name: str
+    username: str
 
 
 class JoinBoard(BaseModel):

@@ -195,12 +195,17 @@ function Board() {
     } catch (error) { console.log(error); }
   };
 
-  const fetchUsers = async () => {
-    try {
-      const response = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/users");
-      setUsers(response.data);
-    } catch (error) { console.log(error); }
-  };
+ const fetchUsers = async () => {
+  try {
+    const response = await axios.get(
+      `https://optimusautomate-projectmanagementtool.onrender.com/boards/${id}/members`
+    );
+
+    setUsers(response.data);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
   const createTask = async () => {
     if (!title.trim()) return;
@@ -319,8 +324,10 @@ function Board() {
                 >
                   <option value="">Unassigned</option>
                   {users.map((user) => (
-                    <option key={user.email} value={user.name}>{user.name}</option>
-                  ))}
+  <option key={user} value={user}>
+    {user}
+  </option>
+))}
                 </select>
               </div>
 

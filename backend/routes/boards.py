@@ -10,7 +10,6 @@ router = APIRouter()
 
 
 def generate_invite_code():
-
     return ''.join(
         random.choices(
             string.ascii_uppercase + string.digits,
@@ -27,7 +26,7 @@ def create_board(board: Board):
     boards_collection.insert_one({
         "name": board.name,
         "invite_code": invite_code,
-        "members": []
+        "members": [board.username]
     })
 
     return {
@@ -46,14 +45,29 @@ def get_boards():
         boards.append({
             "id": str(board["_id"]),
             "name": board["name"],
-            "invite_code": board.get(
-                "invite_code",
-                ""
-            ),
-            "members": board.get(
-                "members",
-                []
-            )
+            "invite_code": board.get("invite_code", ""),
+            "members": board.get("members", [])
+        })
+
+    return boards
+
+
+@router.get("/boards/user/{username}")
+def get_user_boards(username: str):
+
+    boards = []
+
+    for board in boards_collection.find(
+        {
+            "members": username
+        }
+    ):
+
+        boards.append({
+            "id": str(board["_id"]),
+            "name": board["name"],
+            "invite_code": board.get("invite_code", ""),
+            "members": board.get("members", [])
         })
 
     return boards
@@ -89,21 +103,15 @@ def join_board(data: JoinBoard):
     })
 
     if not board:
-
         return {
             "message": "Invalid Invite Code"
         }
 
-    members = board.get(
-        "members",
-        []
-    )
+    members = board.get("members", [])
 
     if data.username not in members:
 
-        members.append(
-            data.username
-        )
+        members.append(data.username)
 
         boards_collection.update_one(
             {
@@ -119,23 +127,16 @@ def join_board(data: JoinBoard):
     return {
         "message": "Joined Successfully"
     }
+@router.get("/boards/{board_id}/members")
+def get_board_members(board_id: str):
 
-
-@router.get("/boards/user/{username}")
-def get_user_boards(username: str):
-
-    boards = []
-
-    for board in boards_collection.find(
+    board = boards_collection.find_one(
         {
-            "members": username
+            "_id": ObjectId(board_id)
         }
-    ):
+    )
 
-        boards.append({
-            "id": str(board["_id"]),
-            "name": board["name"],
-            "invite_code": board["invite_code"]
-        })
+    if not board:
+        return []
 
-    return boards
+    return board.get("members", [])

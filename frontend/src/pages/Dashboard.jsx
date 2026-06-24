@@ -43,7 +43,10 @@ function Dashboard() {
 
   const fetchBoards = async () => {
     try {
-      const res = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards");
+      const username = localStorage.getItem("userName");
+      const res = await axios.get(
+        `http://127.0.0.1:8000/boards/user/${username}`
+      );
       setBoards(res.data);
     } catch (e) { console.log(e); }
   };
@@ -91,15 +94,11 @@ function Dashboard() {
       return;
     }
     try {
+      const username = localStorage.getItem("userName");
       const response = await axios.post(
-        "https://optimusautomate-projectmanagementtool.onrender.com/boards",
-        { name: boardName }
+        "http://127.0.0.1:8000/boards",
+        { name: boardName, username: username }
       );
-     
-console.log("FULL RESPONSE:", response);
-console.log("DATA:", response.data);
-
-alert(JSON.stringify(response.data));
       setGeneratedInviteCode(response.data.invite_code);
       alert("Board Created!\nInvite Code: " + response.data.invite_code);
       setBoardName("");
