@@ -39,6 +39,7 @@ function Dashboard() {
   });
   const [aiSummary, setAiSummary] = useState("");
   const [loadingSummary, setLoadingSummary] = useState(false);
+  const [selectedBoard, setSelectedBoard] = useState("");
 
   useEffect(() => { fetchBoards(); fetchStats(); }, []);
 
@@ -49,6 +50,9 @@ function Dashboard() {
         `http://127.0.0.1:8000/boards/user/${username}`
       );
       setBoards(res.data);
+      if (res.data.length > 0) {
+        setSelectedBoard(res.data[0].id);
+      }
     } catch (e) { console.log(e); }
   };
 
@@ -346,26 +350,55 @@ function Dashboard() {
           <div className="ai-summary-card">
             <div className="ai-header">
               <h2>🤖 AI Project Health</h2>
-              <button
-                onClick={() => {
-                  if (boards.length > 0)
-                    generateSummary(boards[0].id);
-                }}
-              >
-                {loadingSummary
-                  ? "Generating..."
-                  : "✨ Generate AI Report"}
-              </button>
+              <div>
+                <select
+                  value={selectedBoard}
+                  onChange={(e) => setSelectedBoard(e.target.value)}
+                  style={{
+                    padding: "10px",
+                    borderRadius: "8px",
+                    marginRight: "10px"
+                  }}
+                >
+                  {boards.map(board => (
+                    <option
+                      key={board.id}
+                      value={board.id}
+                    >
+                      {board.name}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => generateSummary(selectedBoard)}
+                >
+                  {loadingSummary
+                    ? "Generating..."
+                    : "✨ Generate AI Report"}
+                </button>
+              </div>
             </div>
-            <pre
-              style={{
-                whiteSpace: "pre-wrap",
-                fontFamily: "inherit",
-                marginTop: "15px"
-              }}
-            >
-              {aiSummary || "Click Generate AI Report"}
-            </pre>
+            {aiSummary ? (
+              <div style={{ marginTop: 15 }}>
+                {aiSummary.split("\n").filter(line => line.trim() !== "").map((line, i) => {
+                  // Convert **text** to <strong>
+                  const parts = line.split(/\*\*(.*?)\*\*/g);
+                  return (
+                    <p key={i} style={{ margin: "0 0 10px", fontSize: 14, color: T.navy, lineHeight: 1.6 }}>
+                      {parts.map((part, j) =>
+                        j % 2 === 1
+                          ? <strong key={j}>{part}</strong>
+                          : part
+                      )}
+                    </p>
+                  );
+                })}
+              </div>
+            ) : (
+              <p style={{ marginTop: 15, fontSize: 14, color: T.slate400 }}>
+                Click Generate AI Report
+              </p>
+            )}
           </div>
 
           {/* ── Boards section header ── */}
