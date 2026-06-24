@@ -183,6 +183,8 @@ function Board() {
   const [status, setStatus] = useState("To Do");
   const [dueDate, setDueDate] = useState("");
   const [generating, setGenerating] = useState(false);
+  const [generatedSubtasks, setGeneratedSubtasks] = useState([]);
+  const [generatingSubtasks, setGeneratingSubtasks] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -229,6 +231,63 @@ function Board() {
       console.log(error);
     } finally {
       setGenerating(false);
+    }
+  };
+
+  const generateSubtasks = async () => {
+    if (!title.trim()) {
+      alert("Enter task title first");
+      return;
+    }
+
+    try {
+      setGeneratingSubtasks(true);
+
+      const response = await axios.post(
+        "http://127.0.0.1:8000/ai/generate-subtasks",
+        {
+          title: title
+        }
+      );
+
+      setGeneratedSubtasks(
+        response.data.subtasks
+      );
+
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setGeneratingSubtasks(false);
+    }
+  };
+
+  const createAISubtasks = async () => {
+    try {
+      for (const task of generatedSubtasks) {
+        await axios.post(
+          "https://optimusautomate-projectmanagementtool.onrender.com/tasks",
+          {
+            board_id: id,
+            title: task.title,
+            description: task.description,
+            priority: task.priority,
+            estimated_days: task.estimated_days,
+            assigned_to: "",
+            status: "To Do",
+            due_date: "",
+            comments: []
+          }
+        );
+      }
+
+      alert("AI subtasks created successfully!");
+
+      fetchTasks();
+
+      setGeneratedSubtasks([]);
+
+    } catch (error) {
+      console.log(error);
     }
   };
 
@@ -344,6 +403,15 @@ function Board() {
                   ? "Generating..."
                   : "✨ Generate Description"}
               </button>
+
+              <button
+                type="button"
+                onClick={generateSubtasks}
+              >
+                {generatingSubtasks
+                  ? "Generating..."
+                  : "✨ Generate Subtasks"}
+              </button>
             </div>
 
             <div className="modal-field">
@@ -354,6 +422,34 @@ function Board() {
                 onChange={(e) => setDescription(e.target.value)}
               />
             </div>
+
+            {generatedSubtasks.length > 0 && (
+              <div style={{ marginTop: 20 }}>
+                <h4>AI Generated Subtasks</h4>
+
+                {generatedSubtasks.map((task, index) => (
+                  <div
+                    key={index}
+                    className="ai-card"
+                  >
+                    <h4>{task.title}</h4>
+                    <p>{task.description}</p>
+                    <b>Priority:</b> {task.priority}
+                    <br/>
+                    <b>Estimated:</b> {task.estimated_days} days
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {generatedSubtasks.length > 0 && (
+              <button
+                onClick={createAISubtasks}
+                style={{ marginTop: "15px" }}
+              >
+                🚀 Create AI Subtasks
+              </button>
+            )}
 
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               <div className="modal-field">

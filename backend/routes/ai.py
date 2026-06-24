@@ -36,3 +36,58 @@ def generate_description(data: TaskPrompt):
     return {
         "description": response.choices[0].message.content
     }
+class SubtaskPrompt(BaseModel):
+    title: str
+
+
+@router.post("/ai/generate-subtasks")
+def generate_subtasks(data: SubtaskPrompt):
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role": "system",
+                "content": """
+Generate exactly 5 software development subtasks.
+
+Return ONLY valid JSON.
+
+Format:
+
+[
+ {
+   "title":"",
+   "description":"",
+   "priority":"",
+   "estimated_days":0
+ }
+]
+
+Priority must be one of:
+Low
+Medium
+High
+Critical
+
+Do not include markdown.
+Do not include explanations.
+Return only JSON.
+"""
+            },
+            {
+                "role": "user",
+                "content": data.title
+            }
+        ]
+    )
+
+    import json
+
+    subtasks = json.loads(
+        response.choices[0].message.content
+    )
+
+    return {
+        "subtasks": subtasks
+    }

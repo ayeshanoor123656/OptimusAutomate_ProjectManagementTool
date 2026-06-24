@@ -12,13 +12,16 @@ router = APIRouter()
 def create_task(task: Task):
 
     tasks_collection.insert_one({
-    "board_id": task.board_id,
-    "title": task.title,
-    "description": task.description,
-    "assigned_to": task.assigned_to,
-    "status": task.status,
-    "due_date": task.due_date,
-    "comments": []
+
+    "board_id":task.board_id,
+    "title":task.title,
+    "description":task.description,
+    "assigned_to":task.assigned_to,
+    "status":task.status,
+    "due_date":task.due_date,
+    "priority":task.priority,
+    "estimated_days":task.estimated_days,
+    "comments":[]
 })
 
     return {
