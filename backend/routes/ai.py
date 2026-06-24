@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 from openai import OpenAI
 from dotenv import load_dotenv
+from database import tasks_collection
 import os
 
 load_dotenv()
@@ -90,4 +91,65 @@ Return only JSON.
 
     return {
         "subtasks": subtasks
+    }
+@router.get("/ai/project-summary/{board_id}")
+def project_summary(board_id: str):
+
+    tasks = list(
+        tasks_collection.find(
+            {
+                "board_id": board_id
+            }
+        )
+    )
+
+    if len(tasks) == 0:
+        return {
+            "summary": "No tasks available."
+        }
+
+    task_text = ""
+
+    for task in tasks:
+
+        task_text += f"""
+Title: {task['title']}
+Status: {task['status']}
+Priority: {task.get('priority','Medium')}
+Description: {task.get('description','')}
+"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[
+            {
+                "role":"system",
+                "content":"""
+You are an AI Project Manager.
+
+Analyze these tasks.
+
+Return:
+
+Project Progress
+
+Main Risks
+
+Recommendations
+
+Upcoming Focus
+
+Keep it under 150 words.
+"""
+            },
+            {
+                "role":"user",
+                "content":task_text
+            }
+        ]
+    )
+
+    return {
+        "summary":
+        response.choices[0].message.content
     }

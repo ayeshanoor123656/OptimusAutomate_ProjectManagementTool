@@ -1046,3 +1046,48 @@ body {
   top: -200px; right: -200px;
   pointer-events: none;
 }
+.ai-summary-card{
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:25px;
+
+    margin-bottom:25px;
+
+    box-shadow:0 2px 10px rgba(0,0,0,.08);
+
+}
+
+.ai-header{
+
+    display:flex;
+
+    justify-content:space-between;
+
+    align-items:center;
+
+}
+
+.ai-header button{
+
+    background:#5B5CEB;
+
+    color:white;
+
+    border:none;
+
+    padding:12px 20px;
+
+    border-radius:10px;
+
+    cursor:pointer;
+
+}
+
+.ai-header button:hover{
+
+    opacity:.9;
+
+}

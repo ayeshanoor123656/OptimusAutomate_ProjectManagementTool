@@ -31,13 +31,14 @@ function Dashboard() {
   const [boards, setBoards]       = useState([]);
   const [showModal, setShowModal] = useState(false);
   const [boardName, setBoardName] = useState("");
-  // Step 1: new states
   const [showJoinModal, setShowJoinModal] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [generatedInviteCode, setGeneratedInviteCode] = useState("");
   const [stats, setStats] = useState({
     totalBoards: 0, totalTasks: 0, completedTasks: 0, pendingTasks: 0,
   });
+  const [aiSummary, setAiSummary] = useState("");
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   useEffect(() => { fetchBoards(); fetchStats(); }, []);
 
@@ -55,8 +56,6 @@ function Dashboard() {
     try {
       const boardRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards/count");
       const statsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/stats");
-      console.log("boards/count response:", boardRes.data);
-      console.log("stats response:", statsRes.data);
       setStats({
         totalBoards:    boardRes.data.total_boards,
         totalTasks:     statsRes.data.total_tasks,
@@ -87,7 +86,6 @@ function Dashboard() {
     }
   };
 
-  // Step 2: updated createBoard
   const createBoard = async () => {
     if (boardName.trim() === "") {
       alert("Please enter a board name");
@@ -110,7 +108,6 @@ function Dashboard() {
     }
   };
 
-  // Step 3: joinBoard function
   const joinBoard = async () => {
     const username = localStorage.getItem("userName");
     try {
@@ -124,6 +121,20 @@ function Dashboard() {
       fetchBoards();
     } catch (error) {
       console.log(error);
+    }
+  };
+
+  const generateSummary = async (boardId) => {
+    try {
+      setLoadingSummary(true);
+      const response = await axios.get(
+        `https://optimusautomate-projectmanagementtool.onrender.com/ai/project-summary/${boardId}`
+      );
+      setAiSummary(response.data.summary);
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
@@ -258,7 +269,6 @@ function Dashboard() {
             <p style={{ fontSize: 13, color: T.navy600, marginTop: 2 }}>Welcome back, {userName}!</p>
           </div>
 
-          {/* Step 4: replaced single button with Join Board + New Board */}
           <div style={{ display: "flex", gap: "10px" }}>
             <button
               onClick={() => setShowJoinModal(true)}
@@ -330,6 +340,32 @@ function Dashboard() {
                 </div>
               </div>
             ))}
+          </div>
+
+          {/* ── AI Project Health ── */}
+          <div className="ai-summary-card">
+            <div className="ai-header">
+              <h2>🤖 AI Project Health</h2>
+              <button
+                onClick={() => {
+                  if (boards.length > 0)
+                    generateSummary(boards[0].id);
+                }}
+              >
+                {loadingSummary
+                  ? "Generating..."
+                  : "✨ Generate AI Report"}
+              </button>
+            </div>
+            <pre
+              style={{
+                whiteSpace: "pre-wrap",
+                fontFamily: "inherit",
+                marginTop: "15px"
+              }}
+            >
+              {aiSummary || "Click Generate AI Report"}
+            </pre>
           </div>
 
           {/* ── Boards section header ── */}
@@ -404,7 +440,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* ════════ Step 5: JOIN BOARD MODAL ════════ */}
+      {/* ════════ JOIN BOARD MODAL ════════ */}
       {showJoinModal && (
         <div
           style={{
