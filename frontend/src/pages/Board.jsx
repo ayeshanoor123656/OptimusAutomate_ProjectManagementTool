@@ -17,6 +17,16 @@ function GripIcon() {
   );
 }
 
+/* ─── Priority Color Helper ─────────────────────────────────── */
+const priorityColor = (priority) => {
+  switch (priority) {
+    case "Critical": return "#dc2626";
+    case "High":     return "#f97316";
+    case "Medium":   return "#eab308";
+    default:         return "#22c55e";
+  }
+};
+
 /* ─── Draggable Task Card ───────────────────────────────────── */
 function DraggableTask({ task, deleteTask, addComment }) {
   const [comment, setComment] = useState("");
@@ -66,6 +76,29 @@ function DraggableTask({ task, deleteTask, addComment }) {
           <span className="task-badge date">📅 {task.due_date}</span>
         )}
       </div>
+
+      {/* Priority & Estimated */}
+      {task.priority && (
+        <p>
+          <span
+            style={{
+              background: priorityColor(task.priority),
+              color: "white",
+              padding: "4px 10px",
+              borderRadius: "20px",
+              fontSize: "12px",
+              fontWeight: "bold"
+            }}
+          >
+            {task.priority}
+          </span>
+        </p>
+      )}
+      {task.estimated_days && (
+        <p>
+          <strong>Estimated:</strong> {task.estimated_days} days
+        </p>
+      )}
 
       {/* Comments */}
       <div className="task-comments">
@@ -185,6 +218,8 @@ function Board() {
   const [generating, setGenerating] = useState(false);
   const [generatedSubtasks, setGeneratedSubtasks] = useState([]);
   const [generatingSubtasks, setGeneratingSubtasks] = useState(false);
+  const [priority, setPriority] = useState("Medium");
+  const [estimatedDays, setEstimatedDays] = useState(1);
 
   useEffect(() => {
     fetchTasks();
@@ -296,12 +331,20 @@ function Board() {
     setCreating(true);
     try {
       await axios.post("https://optimusautomate-projectmanagementtool.onrender.com/tasks", {
-        board_id: id, title, description,
-        assigned_to: assignedTo, status, due_date: dueDate,
+        board_id: id,
+        title,
+        description,
+        assigned_to: assignedTo,
+        status,
+        due_date: dueDate,
+        priority,
+        estimated_days: estimatedDays,
+        comments: []
       });
       setShowModal(false);
       setTitle(""); setDescription(""); setAssignedTo("");
       setStatus("To Do"); setDueDate("");
+      setPriority("Medium"); setEstimatedDays(1);
       fetchTasks();
     } catch (error) { console.log(error); }
     finally { setCreating(false); }
@@ -478,11 +521,34 @@ function Board() {
             </div>
 
             <div className="modal-field">
+              <label>Priority</label>
+              <select
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Critical">Critical</option>
+              </select>
+            </div>
+
+            <div className="modal-field">
               <label>Due date</label>
               <input
                 type="date"
                 value={dueDate}
                 onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
+
+            <div className="modal-field">
+              <label>Estimated Days</label>
+              <input
+                type="number"
+                min="1"
+                value={estimatedDays}
+                onChange={(e) => setEstimatedDays(Number(e.target.value))}
               />
             </div>
 

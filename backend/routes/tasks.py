@@ -39,13 +39,15 @@ def get_tasks(board_id: str):
         {"board_id": board_id}
     ):
 
-        tasks.append({
+       tasks.append({
     "id": str(task["_id"]),
     "title": task["title"],
     "description": task.get("description", ""),
     "assigned_to": task.get("assigned_to", ""),
     "status": task["status"],
     "due_date": task.get("due_date", ""),
+    "priority": task.get("priority", "Medium"),
+    "estimated_days": task.get("estimated_days", 0),
     "comments": task.get("comments", [])
 })
 
