@@ -182,6 +182,7 @@ function Board() {
   const [assignedTo, setAssignedTo] = useState("");
   const [status, setStatus] = useState("To Do");
   const [dueDate, setDueDate] = useState("");
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     fetchTasks();
@@ -195,17 +196,41 @@ function Board() {
     } catch (error) { console.log(error); }
   };
 
- const fetchUsers = async () => {
-  try {
-    const response = await axios.get(
-      `https://optimusautomate-projectmanagementtool.onrender.com/boards/${id}/members`
-    );
+  const fetchUsers = async () => {
+    try {
+      const response = await axios.get(
+        `https://optimusautomate-projectmanagementtool.onrender.com/boards/${id}/members`
+      );
+      setUsers(response.data);
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
-    setUsers(response.data);
-  } catch (error) {
-    console.log(error);
-  }
-};
+  const generateDescription = async () => {
+    if (!title.trim()) {
+      alert("Enter task title first");
+      return;
+    }
+
+    try {
+      setGenerating(true);
+
+      const response = await axios.post(
+        "http://127.0.0.1:8000/ai/generate-description",
+        {
+          title: title
+        }
+      );
+
+      setDescription(response.data.description);
+
+    } catch (error) {
+      console.log(error);
+    } finally {
+      setGenerating(false);
+    }
+  };
 
   const createTask = async () => {
     if (!title.trim()) return;
@@ -297,6 +322,7 @@ function Board() {
 
             <div className="modal-field">
               <label>Task title</label>
+
               <input
                 type="text"
                 placeholder="What needs to be done?"
@@ -304,6 +330,20 @@ function Board() {
                 onChange={(e) => setTitle(e.target.value)}
                 autoFocus
               />
+
+              <button
+                type="button"
+                onClick={generateDescription}
+                style={{
+                  marginTop: "10px",
+                  padding: "8px 12px",
+                  cursor: "pointer"
+                }}
+              >
+                {generating
+                  ? "Generating..."
+                  : "✨ Generate Description"}
+              </button>
             </div>
 
             <div className="modal-field">
@@ -324,10 +364,10 @@ function Board() {
                 >
                   <option value="">Unassigned</option>
                   {users.map((user) => (
-  <option key={user} value={user}>
-    {user}
-  </option>
-))}
+                    <option key={user} value={user}>
+                      {user}
+                    </option>
+                  ))}
                 </select>
               </div>
 
