@@ -24,6 +24,8 @@ const T = {
   roseSoft:    "#FFE4E6",
 };
 
+const BASE = "http://127.0.0.1:8000";
+
 function Dashboard() {
   const navigate = useNavigate();
   const userName = localStorage.getItem("userName") || "User";
@@ -41,52 +43,39 @@ function Dashboard() {
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [selectedBoard, setSelectedBoard] = useState("");
 
-  useEffect(() => { fetchBoards(); fetchStats(); }, []);
+  useEffect(() => { fetchBoards(); }, []);
+
+  const fetchStats = async (boardList) => {
+    try {
+      let allTasks = [];
+      for (const board of boardList) {
+        try {
+          const tasksRes = await axios.get(`${BASE}/tasks/${board.id}`);
+          allTasks = allTasks.concat(tasksRes.data);
+        } catch (_) {}
+      }
+      setStats({
+        totalBoards:    boardList.length,
+        totalTasks:     allTasks.length,
+        completedTasks: allTasks.filter(t => t.status === "Done").length,
+        pendingTasks:   allTasks.filter(t => t.status !== "Done").length,
+      });
+    } catch (e) {
+      console.error("Stats failed:", e);
+    }
+  };
 
   const fetchBoards = async () => {
     try {
       const username = localStorage.getItem("userName");
-      const res = await axios.get(
-        `http://127.0.0.1:8000/boards/user/${username}`
-      );
+      const res = await axios.get(`${BASE}/boards/user/${username}`);
       setBoards(res.data);
       if (res.data.length > 0) {
         setSelectedBoard(res.data[0].id);
       }
-    } catch (e) { console.log(e); }
-  };
-
-  const fetchStats = async () => {
-    try {
-      const boardRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards/count");
-      const statsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/stats");
-      setStats({
-        totalBoards:    boardRes.data.total_boards,
-        totalTasks:     statsRes.data.total_tasks,
-        completedTasks: statsRes.data.completed_tasks,
-        pendingTasks:   statsRes.data.pending_tasks,
-      });
+      await fetchStats(res.data);
     } catch (e) {
-      console.warn("Stats endpoints failed, computing from tasks:", e.message);
-      try {
-        const boardsRes = await axios.get("https://optimusautomate-projectmanagementtool.onrender.com/boards");
-        const allBoards = boardsRes.data;
-        let allTasks = [];
-        for (const board of allBoards) {
-          try {
-            const tasksRes = await axios.get(`https://optimusautomate-projectmanagementtool.onrender.com/tasks/${board.id}`);
-            allTasks = allTasks.concat(tasksRes.data);
-          } catch (_) {}
-        }
-        setStats({
-          totalBoards:    allBoards.length,
-          totalTasks:     allTasks.length,
-          completedTasks: allTasks.filter(t => t.status === "Done").length,
-          pendingTasks:   allTasks.filter(t => t.status !== "Done").length,
-        });
-      } catch (e2) {
-        console.error("Fallback stats also failed:", e2);
-      }
+      console.log(e);
     }
   };
 
@@ -98,7 +87,7 @@ function Dashboard() {
     try {
       const username = localStorage.getItem("userName");
       const response = await axios.post(
-        "http://127.0.0.1:8000/boards",
+        `${BASE}/boards`,
         { name: boardName, username: username }
       );
       setGeneratedInviteCode(response.data.invite_code);
@@ -106,7 +95,6 @@ function Dashboard() {
       setBoardName("");
       setShowModal(false);
       fetchBoards();
-      fetchStats();
     } catch (error) {
       console.log(error);
     }
@@ -116,7 +104,7 @@ function Dashboard() {
     const username = localStorage.getItem("userName");
     try {
       const response = await axios.post(
-        "https://optimusautomate-projectmanagementtool.onrender.com/boards/join",
+        `${BASE}/boards/join`,
         { invite_code: inviteCode, username }
       );
       alert(response.data.message);
@@ -132,7 +120,7 @@ function Dashboard() {
     try {
       setLoadingSummary(true);
       const response = await axios.get(
-        `https://optimusautomate-projectmanagementtool.onrender.com/ai/project-summary/${boardId}`
+        `${BASE}/ai/project-summary/${boardId}`
       );
       setAiSummary(response.data.summary);
     } catch (error) {
@@ -283,6 +271,9 @@ function Dashboard() {
                 background: "#10B981",
                 color: "white",
                 cursor: "pointer",
+                fontFamily: "'Inter',system-ui,sans-serif",
+                fontSize: 13.5,
+                fontWeight: 600,
               }}
             >
               Join Board
@@ -347,48 +338,62 @@ function Dashboard() {
           </div>
 
           {/* ── AI Project Health ── */}
-          <div className="ai-summary-card">
-            <div className="ai-header">
-              <h2>🤖 AI Project Health</h2>
-              <div>
+          <div style={{
+            background: T.white,
+            border: `1px solid ${T.slate200}`,
+            borderRadius: 14,
+            padding: "20px 24px",
+            marginBottom: 32,
+            boxShadow: "0 1px 4px rgba(15,23,42,0.06)",
+          }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12 }}>
+              <h2 style={{ fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", fontSize: 16, fontWeight: 700, color: T.navy, margin: 0 }}>
+                🤖 AI Project Health
+              </h2>
+              <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <select
                   value={selectedBoard}
                   onChange={(e) => setSelectedBoard(e.target.value)}
                   style={{
-                    padding: "10px",
-                    borderRadius: "8px",
-                    marginRight: "10px"
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    border: `1.5px solid ${T.slate200}`,
+                    fontFamily: "'Inter',system-ui,sans-serif",
+                    fontSize: 13.5,
+                    color: T.navy,
+                    background: T.white,
+                    cursor: "pointer",
+                    outline: "none",
                   }}
                 >
                   {boards.map(board => (
-                    <option
-                      key={board.id}
-                      value={board.id}
-                    >
-                      {board.name}
-                    </option>
+                    <option key={board.id} value={board.id}>{board.name}</option>
                   ))}
                 </select>
                 <button
                   onClick={() => generateSummary(selectedBoard)}
+                  style={{
+                    padding: "8px 16px",
+                    background: "linear-gradient(135deg,#6366F1,#4F46E5)",
+                    border: "none", borderRadius: 8,
+                    fontFamily: "'Inter',system-ui,sans-serif",
+                    fontSize: 13.5, fontWeight: 600,
+                    color: T.white, cursor: "pointer",
+                    boxShadow: "0 3px 10px rgba(99,102,241,0.35)",
+                  }}
                 >
-                  {loadingSummary
-                    ? "Generating..."
-                    : "✨ Generate AI Report"}
+                  {loadingSummary ? "Generating…" : "✨ Generate AI Report"}
                 </button>
               </div>
             </div>
             {aiSummary ? (
               <div style={{ marginTop: 15 }}>
                 {aiSummary.split("\n").filter(line => line.trim() !== "").map((line, i) => {
-                  // Convert **text** to <strong>
                   const parts = line.split(/\*\*(.*?)\*\*/g);
                   return (
                     <p key={i} style={{ margin: "0 0 10px", fontSize: 14, color: T.navy, lineHeight: 1.6 }}>
                       {parts.map((part, j) =>
-                        j % 2 === 1
-                          ? <strong key={j}>{part}</strong>
-                          : part
+                        j % 2 === 1 ? <strong key={j}>{part}</strong> : part
                       )}
                     </p>
                   );
@@ -396,7 +401,7 @@ function Dashboard() {
               </div>
             ) : (
               <p style={{ marginTop: 15, fontSize: 14, color: T.slate400 }}>
-                Click Generate AI Report
+                Select a board and click Generate AI Report to see insights.
               </p>
             )}
           </div>
@@ -477,24 +482,17 @@ function Dashboard() {
       {showJoinModal && (
         <div
           style={{
-            position: "fixed",
-            inset: 0,
+            position: "fixed", inset: 0,
             background: "rgba(0,0,0,0.4)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
+            display: "flex", justifyContent: "center", alignItems: "center",
             zIndex: 200,
           }}
         >
-          <div
-            style={{
-              background: "white",
-              padding: "28px",
-              borderRadius: "10px",
-              width: "400px",
-              boxShadow: "0 20px 60px rgba(15,23,42,0.2)",
-            }}
-          >
+          <div style={{
+            background: "white", padding: "28px",
+            borderRadius: "10px", width: "400px",
+            boxShadow: "0 20px 60px rgba(15,23,42,0.2)",
+          }}>
             <h2 style={{ margin: "0 0 16px", fontFamily: "'Plus Jakarta Sans',system-ui,sans-serif", fontSize: 18, fontWeight: 700, color: T.navy }}>
               Join Board
             </h2>
@@ -504,14 +502,12 @@ function Dashboard() {
               value={inviteCode}
               onChange={(e) => setInviteCode(e.target.value)}
               style={{
-                width: "100%",
-                padding: "10px 13px",
+                width: "100%", padding: "10px 13px",
                 border: `1.5px solid ${T.slate200}`,
                 borderRadius: 10,
                 fontFamily: "'Inter',system-ui,sans-serif",
-                fontSize: 14,
-                color: T.navy,
-                boxSizing: "border-box",
+                fontSize: 14, color: T.navy,
+                boxSizing: "border-box", outline: "none",
               }}
             />
             <div style={{ display: "flex", gap: "10px", marginTop: "20px", justifyContent: "flex-end" }}>
@@ -519,12 +515,9 @@ function Dashboard() {
                 onClick={() => setShowJoinModal(false)}
                 style={{
                   padding: "10px 18px",
-                  background: T.white,
-                  border: `1.5px solid ${T.slate200}`,
-                  borderRadius: 10,
-                  fontFamily: "'Inter',system-ui,sans-serif",
-                  fontSize: 13.5, fontWeight: 600,
-                  color: T.navy700, cursor: "pointer",
+                  background: T.white, border: `1.5px solid ${T.slate200}`,
+                  borderRadius: 10, fontFamily: "'Inter',system-ui,sans-serif",
+                  fontSize: 13.5, fontWeight: 600, color: T.navy700, cursor: "pointer",
                 }}
               >
                 Cancel
@@ -533,12 +526,9 @@ function Dashboard() {
                 onClick={joinBoard}
                 style={{
                   padding: "10px 20px",
-                  background: "#10B981",
-                  border: "none",
-                  borderRadius: 10,
+                  background: "#10B981", border: "none", borderRadius: 10,
                   fontFamily: "'Inter',system-ui,sans-serif",
-                  fontSize: 13.5, fontWeight: 600,
-                  color: "white", cursor: "pointer",
+                  fontSize: 13.5, fontWeight: 600, color: "white", cursor: "pointer",
                 }}
               >
                 Join
